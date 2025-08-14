@@ -33,25 +33,30 @@ ext {
 }
 
 dependencies {
-    implementation('org.springframework.boot:spring-boot-starter')
-//    {
-//        exclude group: 'com.h2database', module: 'h2'
-//    }
+    implementation('org.springframework.boot:spring-boot-starter') {
+        exclude group: "com.h2database", module: "h2"
+    }
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
 
     implementation "org.apache.ignite:ignite-core:${igniteVersion}"
     implementation "org.apache.ignite:ignite-spring:${igniteVersion}"
-//    implementation "org.apache.ignite:ignite-indexing:${igniteVersion}"
     implementation "org.apache.ignite:ignite-slf4j:${igniteVersion}"
+    implementation ("org.apache.ignite:ignite-indexing:${igniteVersion}")  {
+        exclude group: "com.h2database", module: "h2"
+    }
+
+    runtimeOnly "com.h2database:h2:1.4.197"
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 //configurations.all {
-//    exclude group: 'com.h2database', module: 'h2'
+//    resolutionStrategy {
+//        force "com.h2database:h2:1.4.197"
+//    }
 //}
 
 tasks.named('test') {
