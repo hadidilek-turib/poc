@@ -34,7 +34,6 @@ public class PersonController {
         new SqlFieldsQuery("select * from person order by name offset ? limit ?")
             .setArgs(offset, size);
 
-
     FieldsQueryCursor<List<?>> cursor = cache.query(qry);
     return cursor
         .getAll()
