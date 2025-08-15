@@ -5,6 +5,7 @@ import com.turib.hadidilek.poc.ignite.model.Person;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.query.SqlFieldsQuery;
+import org.apache.ignite.lang.IgniteClosure;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,13 +33,14 @@ public class PersonController {
     SqlFieldsQuery qry =
         new SqlFieldsQuery("select * from person order by name offset ? limit ?")
             .setArgs(offset, size);
-    return cache
-        .query(qry)
-        .getAll()
-        .stream()
-        .flatMap(List::stream)
-        .map(Person.class::cast)
-        .toList();
+
+    IgniteClosure<List<?>, Person> transformer = objects -> Person
+        .builder()
+        .id((Integer) objects.get(0))
+        .name((String) objects.get(1))
+        .build();
+
+    return cache.query(qry, transformer).getAll();
   }
 
   @GetMapping
