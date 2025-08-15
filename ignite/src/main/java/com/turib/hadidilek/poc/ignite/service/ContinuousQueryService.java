@@ -26,9 +26,9 @@ public class ContinuousQueryService {
   }
 
   private void populateInitialData() {
-    cache.put(1, new Person(1, "Charlie"));
-    cache.put(2, new Person(2, "Alice"));
-    cache.put(3, new Person(3, "Bob"));
+    cache.put(1, new Person(101, "Charlie"));
+    cache.put(2, new Person(102, "Alice"));
+    cache.put(3, new Person(103, "Bob"));
   }
 
   private void initContinuousQuery() {

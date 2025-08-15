@@ -26,12 +26,18 @@ public class PersonController {
   }
 
   @GetMapping("/all")
-  public List<Person> getPeople() {
+  public List<Person> getPeople(@RequestParam(name = "page", required = false, defaultValue = "0") int page,
+                                @RequestParam(name = "size", required = false, defaultValue = "2") int size) {
+    int offset = page * size;
+    SqlFieldsQuery qry =
+        new SqlFieldsQuery("select * from person order by name offset ? limit ?")
+            .setArgs(offset, size);
     return cache
-        .query(new SqlFieldsQuery("select * from Person"))
+        .query(qry)
         .getAll()
         .stream()
-        .flatMap(result -> ((List<Person>) result).stream())
+        .flatMap(List::stream)
+        .map(Person.class::cast)
         .toList();
   }
 
