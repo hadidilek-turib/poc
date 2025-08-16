@@ -7,12 +7,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.query.ContinuousQuery;
+import org.apache.ignite.cache.query.Query;
 import org.apache.ignite.cache.query.QueryCursor;
-import org.apache.ignite.cache.query.ScanQuery;
+import org.apache.ignite.cache.query.SqlFieldsQuery;
 import org.apache.ignite.lang.IgniteBiPredicate;
 import org.springframework.stereotype.Service;
 
-import javax.cache.Cache;
 import java.util.List;
 
 @Slf4j
@@ -41,22 +41,38 @@ public class ContinuousQueryService {
   }
 
   private void initContinuousQuery() {
-    ContinuousQuery<Integer, Person> qry = new ContinuousQuery<>();
-    IgniteBiPredicate<Integer, Person> predicate = (key, person) -> person.getId() > 101 && person.getId() < 105;
-    qry.setInitialQuery(new ScanQuery<>(predicate));
+    ContinuousQuery<Integer, Person> continuousQuery = buildContinuousQuery();
+    Query initialQuery = new SqlFieldsQuery("select * from person order by name offset 0 limit 2");
+    continuousQuery.setInitialQuery(initialQuery);
 
-    qry.setLocalListener(events -> {
+    QueryCursor<?> cursor = cache.query(continuousQuery);
+    log.info("Continuous Query started. Initial results:");
+
+    List<Person> items = cursor
+        .getAll()
+        .stream()
+        .map(List.class::cast)
+        .map(fields -> Person
+            .builder()
+            .id((Integer) fields.get(0))
+            .name((String) fields.get(1))
+            .build())
+        .toList();
+
+    items.forEach(item -> log.info("item: {}", item));
+  }
+
+  private ContinuousQuery<Integer, Person> buildContinuousQuery() {
+    ContinuousQuery<Integer, Person> continuousQuery = new ContinuousQuery<>();
+    IgniteBiPredicate<Integer, Person> predicate = (key, person) -> person.getId() > 101 && person.getId() < 105;
+    continuousQuery.setRemoteFilterFactory(() -> event -> predicate.apply(event.getKey(), event.getValue()));
+    continuousQuery.setLocalListener(events -> {
       for (var e : events) {
         log.info("Continuous Query Event received: key:{} old:{} new:{}", e.getKey(), e.getOldValue(), e.getValue());
       }
     });
 
-    qry.setRemoteFilterFactory(() -> event -> predicate.apply(event.getKey(), event.getValue()));
-
-    QueryCursor<Cache.Entry<Integer, Person>> cursor = cache.query(qry);
-    log.info("Continuous Query started. Initial results:");
-    List<Cache.Entry<Integer, Person>> all = cursor.getAll();
-    all.forEach(entry -> log.info(entry.getValue().toString()));
+    return continuousQuery;
   }
 }
 
