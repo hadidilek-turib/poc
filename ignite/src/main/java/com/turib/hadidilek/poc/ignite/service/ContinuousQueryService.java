@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.query.ContinuousQuery;
-import org.apache.ignite.cache.query.Query;
 import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.SqlFieldsQuery;
 import org.apache.ignite.lang.IgniteBiPredicate;
@@ -41,8 +40,8 @@ public class ContinuousQueryService {
   }
 
   private void initContinuousQuery() {
-    ContinuousQuery<Integer, Person> continuousQuery = buildContinuousQuery();
-    Query initialQuery = new SqlFieldsQuery("select * from person order by name offset 0 limit 2");
+    ContinuousQuery continuousQuery = buildContinuousQuery();
+    SqlFieldsQuery initialQuery = new SqlFieldsQuery("select * from person order by name offset 0 limit 2");
     continuousQuery.setInitialQuery(initialQuery);
 
     QueryCursor<?> cursor = cache.query(continuousQuery);
