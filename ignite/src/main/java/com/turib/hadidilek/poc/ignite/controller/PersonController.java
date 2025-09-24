@@ -1,9 +1,6 @@
 package com.turib.hadidilek.poc.ignite.controller;
 
-import com.turib.hadidilek.poc.ignite.config.IgniteConfig;
 import com.turib.hadidilek.poc.ignite.model.Person;
-import org.apache.ignite.Ignite;
-import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.query.FieldsQueryCursor;
 import org.apache.ignite.cache.query.SqlFieldsQuery;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -16,15 +13,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import static com.turib.hadidilek.poc.ignite.config.IgniteConfig.Caches.PERSON_SQL;
+
 @RestController
 @RequestMapping("/person")
 public class PersonController {
-
-  private final IgniteCache<Integer, Person> cache;
-
-  public PersonController(Ignite ignite) {
-    this.cache = ignite.cache(IgniteConfig.PERSON_CACHE);
-  }
 
   @GetMapping("/all")
   public List<Person> getPeople(@RequestParam(name = "page", required = false, defaultValue = "0") int page,
@@ -34,7 +27,7 @@ public class PersonController {
         new SqlFieldsQuery("select * from person order by name offset ? limit ?")
             .setArgs(offset, size);
 
-    FieldsQueryCursor<List<?>> cursor = cache.query(qry);
+    FieldsQueryCursor<List<?>> cursor = PERSON_SQL.getCache().query(qry);
     return cursor
         .getAll()
         .stream()
@@ -48,18 +41,18 @@ public class PersonController {
 
   @GetMapping
   public Person getPerson(@RequestParam Integer id) {
-    return cache.get(id);
+    return PERSON_SQL.getCache().get(id);
   }
 
   @PostMapping
   public String addPerson(@RequestParam int id, @RequestParam String name) {
-    cache.put(id, new Person(id, name));
+    PERSON_SQL.getCache().put(id, new Person(id, name));
     return "Person added: " + id + " - " + name;
   }
 
   @DeleteMapping("/{id}")
   public String removePerson(@PathVariable int id) {
-    cache.remove(id);
+    PERSON_SQL.getCache().remove(id);
     return "Person removed: " + id;
   }
 }
