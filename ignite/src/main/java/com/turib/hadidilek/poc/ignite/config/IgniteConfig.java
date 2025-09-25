@@ -13,6 +13,7 @@ import org.apache.ignite.configuration.ClientConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
+import org.springdoc.webmvc.core.service.RequestService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -21,7 +22,7 @@ import java.util.List;
 @Configuration
 public class IgniteConfig {
 
-  public enum Caches {
+  public enum Cache {
     PERSON_SCAN(null),
     PERSON_SQL(null);
 
@@ -29,8 +30,32 @@ public class IgniteConfig {
     @Setter
     private IgniteCache<Integer, Person> cache;
 
-    private Caches(IgniteCache<Integer, Person> cache) {
+    Cache(IgniteCache<Integer, Person> cache) {
       this.cache = cache;
+    }
+
+    public void reset(Ignite client) {
+      if (cache != null) {
+        cache.destroy();
+      }
+
+      switch (this) {
+        case PERSON_SCAN:
+          setCache(client.getOrCreateCache(name()));
+          break;
+
+        case PERSON_SQL:
+          CacheConfiguration<Integer, Person> cacheCfg = new CacheConfiguration<>(Cache.PERSON_SQL.name());
+          cacheCfg.setIndexedTypes(Integer.class, Person.class);
+          Cache.PERSON_SQL.setCache(client.getOrCreateCache(cacheCfg));
+          break;
+      }
+    }
+
+    public static void resetAll(Ignite client) {
+      for (Cache cache : Cache.values()) {
+        cache.reset(client);
+      }
     }
   }
 
@@ -45,7 +70,7 @@ public class IgniteConfig {
 
   @Bean(name = "igniteClient", destroyMethod = "close")
 //  @DependsOn("igniteServer")
-  public Ignite igniteThickClient() {
+  public Ignite igniteThickClient(RequestService requestService) {
     TcpDiscoverySpi discoverySpi = new TcpDiscoverySpi();
     TcpDiscoveryVmIpFinder ipFinder = new TcpDiscoveryVmIpFinder();
     ipFinder.setAddresses(List.of("127.0.0.1:47500"));
@@ -60,11 +85,7 @@ public class IgniteConfig {
     Ignite client = Ignition.start(cfg);
     System.out.println("Thick client started: " + client.name());
 
-    Caches.PERSON_SCAN.setCache(client.getOrCreateCache(Caches.PERSON_SCAN.name()));
-
-    CacheConfiguration<Integer, Person> cacheCfg = new CacheConfiguration<>(Caches.PERSON_SQL.name());
-    cacheCfg.setIndexedTypes(Integer.class, Person.class);
-    Caches.PERSON_SQL.setCache(client.getOrCreateCache(cacheCfg));
+    Cache.resetAll(client);
 
     return client;
   }
@@ -85,7 +106,7 @@ public class IgniteConfig {
             " id LONG PRIMARY KEY, " +
             " name VARCHAR " +
             ") WITH \"CACHE_NAME=? \""
-    ).setArgs(Caches.PERSON_SQL.name())).getAll();
+    ).setArgs(Cache.PERSON_SQL.name())).getAll();
 
     igniteClient.query(new SqlFieldsQuery(
         "CREATE INDEX IF NOT EXISTS idx_id ON Person(id)"

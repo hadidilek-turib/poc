@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 
-import static com.turib.hadidilek.poc.ignite.config.IgniteConfig.Caches.PERSON_SQL;
+import static com.turib.hadidilek.poc.ignite.config.IgniteConfig.Cache.PERSON_SQL;
 
 @Slf4j
 @Service

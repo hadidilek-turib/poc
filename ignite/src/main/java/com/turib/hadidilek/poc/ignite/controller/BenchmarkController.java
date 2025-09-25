@@ -21,10 +21,13 @@ public class BenchmarkController {
   }
 
   @GetMapping("/prepare")
-  public String prepare(@RequestParam(name = "item-count") int itemCount) {
+  public String prepare(
+      @RequestParam(name = "start-key") int startKey,
+      @RequestParam(name = "item-count") int itemCount) {
+
     CompletableFuture.runAsync(() -> {
-      service.destroy();
-      service.populate(itemCount);
+      service.reset();
+      service.populate(startKey, itemCount);
     });
     return "Data preparation started.";
   }

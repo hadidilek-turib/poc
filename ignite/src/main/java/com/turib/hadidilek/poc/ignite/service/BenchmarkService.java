@@ -1,6 +1,9 @@
 package com.turib.hadidilek.poc.ignite.service;
 
+import com.turib.hadidilek.poc.ignite.config.IgniteConfig;
 import com.turib.hadidilek.poc.ignite.model.Person;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.ignite.Ignite;
 import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.cache.query.SqlFieldsQuery;
@@ -12,29 +15,32 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.LongSummaryStatistics;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static com.turib.hadidilek.poc.ignite.config.IgniteConfig.Caches.PERSON_SCAN;
-import static com.turib.hadidilek.poc.ignite.config.IgniteConfig.Caches.PERSON_SQL;
+import static com.turib.hadidilek.poc.ignite.config.IgniteConfig.Cache.PERSON_SCAN;
+import static com.turib.hadidilek.poc.ignite.config.IgniteConfig.Cache.PERSON_SQL;
 
 @Service
 public class BenchmarkService {
 
-  public enum BenchmarkType {
-    SCAN_QUERY,
-    SQL_QUERY
+  private Ignite client;
+
+  public BenchmarkService(Ignite client) {
+    this.client = client;
   }
 
-  public void destroy() {
-    PERSON_SCAN.getCache().destroy();
-    PERSON_SQL.getCache().destroy();
+  public void reset() {
+    IgniteConfig.Cache.resetAll(client);
   }
 
-  public void populate(int itemCount) {
-    for (int i = 0; i < itemCount; i++) {
-      Person person = new Person(i, "name-" + i);
-      PERSON_SCAN.getCache().put(itemCount, person);
-      PERSON_SQL.getCache().put(itemCount, person);
+  public void populate(int startKey, int itemCount) {
+    int totalCount = startKey + itemCount;
+    for (int id = startKey; id < totalCount; id++) {
+      Person person = new Person(id, "name-" + id);
+      PERSON_SCAN.getCache().put(id, person);
+      PERSON_SQL.getCache().put(id, person);
     }
   }
 
@@ -43,25 +49,27 @@ public class BenchmarkService {
       int stepCount,
       int iterations) throws Exception {
 
+    reset();
+
     BenchmarkCollector benchmarkCollector = new BenchmarkCollector();
-    destroy();
     int totalCount = 0;
     for (int step = 0; step < stepCount; step++) {
       if (stepSize != 0) {
-        populate(stepSize);
+        populate(step * stepSize, stepSize);
       }
 
       totalCount += stepSize;
 
-      System.out.printf("Step %s - Total count: %s\n", step, totalCount);
+      String stepInfo = String.format("step %02d - total: %d", step, totalCount);
+      System.out.println(stepInfo);
 
       for (int i = 0; i < iterations; i++) {
-        System.out.printf("Iteration %s \n", i);
+        System.out.printf("Iteration %d \n", i);
 
         ScanQuery<Long, BinaryObject> scanQuery = new ScanQuery();
         scanQuery.setPageSize(1024);
         scanQuery.setLocal(false);
-        String taskName = String.format("Scan Query - step %s - total count: %s", step, totalCount);
+        String taskName = String.format("%s - scan", stepInfo);
         benchmarkCollector.timed(
             taskName,
             () -> {
@@ -74,7 +82,7 @@ public class BenchmarkService {
         SqlFieldsQuery sqlFieldsQuery = new SqlFieldsQuery("SELECT _key, _val FROM Person ORDER BY name DESC");
         sqlFieldsQuery.setPageSize(1024);
         sqlFieldsQuery.setLocal(false);
-        taskName = String.format("Scan Query - step %s - total count: %s", step, totalCount);
+        taskName = String.format("%s - sql", stepInfo);
         benchmarkCollector.timed(
             taskName,
             () -> {
@@ -89,21 +97,27 @@ public class BenchmarkService {
     StopWatch stopWatch = benchmarkCollector.getStopWatch();
     System.out.println(stopWatch.prettyPrint());
 
-    Map<String, List<TaskInfo>> stats = Arrays
+    Map<String, List<TaskInfo>> statsByTasks = new TreeMap<>(Arrays
         .stream(stopWatch.getTaskInfo())
-        .collect(Collectors.groupingBy(e -> e.getTaskName()));
+        .collect(Collectors.groupingBy(e -> e.getTaskName())));
 
+    printCsv(statsByTasks);
+  }
+
+  private static void printCsv(Map<String, List<TaskInfo>> stats) {
+    System.out.println("Count(x1000)\tScan(ms)\tSQL(ms)\n");
     for (var entry : stats.entrySet()) {
-      System.out.println(entry.getKey());
-      printSummary(entry.getValue());
+      if (entry.getKey().endsWith("scan")) {
+        System.out.printf("%s\t%.2f\t",
+            entry.getKey().replaceAll(".*total:\\s*(\\d+).*", "$1"),
+            summary(entry.getValue()).getAverage());
+      } else {
+        System.out.printf("%.2f\n", summary(entry.getValue()).getAverage());
+      }
     }
   }
 
-  private static void printSummary(List<TaskInfo> taskInfos) {
-    LongSummaryStatistics statsForScanQuery = taskInfos.stream().map(TaskInfo::getTimeMillis).mapToLong(Long::longValue).summaryStatistics();
-    System.out.println("Sum: " + statsForScanQuery.getSum());
-    System.out.println("Avg: " + statsForScanQuery.getAverage());
-    System.out.println("Min: " + statsForScanQuery.getMin());
-    System.out.println("Max: " + statsForScanQuery.getMax());
+  private static LongSummaryStatistics summary(List<TaskInfo> taskInfos) {
+    return taskInfos.stream().map(TaskInfo::getTimeMillis).mapToLong(Long::longValue).summaryStatistics();
   }
 }
