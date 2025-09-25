@@ -2,7 +2,6 @@ package com.turib.hadidilek.poc.ignite.service;
 
 import com.turib.hadidilek.poc.ignite.config.IgniteConfig;
 import com.turib.hadidilek.poc.ignite.model.Person;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.query.ScanQuery;
@@ -16,7 +15,6 @@ import java.util.List;
 import java.util.LongSummaryStatistics;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.turib.hadidilek.poc.ignite.config.IgniteConfig.Cache.PERSON_SCAN;
