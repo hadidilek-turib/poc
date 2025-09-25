@@ -15,22 +15,22 @@ public class BenchmarkCollector {
   public void timed(String taskName, Runnable runnable) {
     stopWatch.start(taskName);
     try {
-      System.out.printf("%s -> started... ", taskName);
+      log.info("{} -> started... ", taskName);
       runnable.run();
     } finally {
       stopWatch.stop();
-      System.out.printf("ended in %s ms.\n", stopWatch.getLastTaskTimeMillis());
+      log.info("ended in {} ms.\n", stopWatch.getLastTaskTimeMillis());
     }
   }
 
   public <T> T timed(String taskName, Callable<T> callable) throws Exception {
     stopWatch.start(taskName);
     try {
-      System.out.printf("%s -> started... ", taskName);
+      log.info("{} -> started... ", taskName);
       return callable.call();
     } finally {
       stopWatch.stop();
-      System.out.printf("ended in %s ms.\n", stopWatch.getLastTaskTimeMillis());
+      log.info("ended in {} ms.\n", stopWatch.getLastTaskTimeMillis());
     }
   }
 }

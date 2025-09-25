@@ -34,12 +34,16 @@ public class BenchmarkService {
   }
 
   public void populate(int startKey, int itemCount) {
+    StopWatch stopWatch = new StopWatch();
+    stopWatch.start("populate");
     int totalCount = startKey + itemCount;
     for (int id = startKey; id < totalCount; id++) {
       Person person = new Person(id, "name-" + id);
       PERSON_SCAN.getCache().put(id, person);
       PERSON_SQL.getCache().put(id, person);
     }
+    stopWatch.stop();
+    System.out.println(stopWatch.prettyPrint());
   }
 
   public void benchmark(

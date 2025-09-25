@@ -2,6 +2,7 @@ package com.turib.hadidilek.poc.ignite.controller;
 
 import com.turib.hadidilek.poc.ignite.service.BenchmarkService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StopWatch;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -29,6 +30,7 @@ public class BenchmarkController {
       service.reset();
       service.populate(startKey, itemCount);
     });
+
     return "Data preparation started.";
   }
 
@@ -40,11 +42,15 @@ public class BenchmarkController {
 
     CompletableFuture.runAsync(() -> {
       try {
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start("benchmark");
         service.benchmark(
             stepSize,
             stepCount,
             iterations
         );
+        stopWatch.stop();
+        System.out.println(stopWatch.prettyPrint());
       } catch (Exception e) {
         log.error("Benchmark test failed.", e);
       }
