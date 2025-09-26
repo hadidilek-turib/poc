@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 
-import static com.turib.hadidilek.poc.ignite.config.IgniteConfig.Cache.PERSON_SQL;
+import static com.turib.hadidilek.poc.ignite.config.CacheContext.Cache.PERSON_SQL;
 
 @Slf4j
 @Service
@@ -61,7 +61,7 @@ public class ContinuousQueryService {
 
   private ContinuousQuery<Integer, Person> buildContinuousQuery() {
     ContinuousQuery<Integer, Person> continuousQuery = new ContinuousQuery<>();
-    IgniteBiPredicate<Integer, Person> predicate = (key, person) -> person.getId() > 101 && person.getId() < 105;
+    IgniteBiPredicate<Integer, Person> predicate = (key, person) -> person.getField1() > 101 && person.getField1() < 105;
     continuousQuery.setRemoteFilterFactory(() -> event -> predicate.apply(event.getKey(), event.getValue()));
     continuousQuery.setLocalListener(events -> {
       for (var e : events) {

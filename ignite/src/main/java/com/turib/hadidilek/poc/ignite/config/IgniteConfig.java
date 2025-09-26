@@ -1,14 +1,9 @@
 package com.turib.hadidilek.poc.ignite.config;
 
-import com.turib.hadidilek.poc.ignite.model.Person;
-import lombok.Getter;
-import lombok.Setter;
 import org.apache.ignite.Ignite;
-import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.cache.query.SqlFieldsQuery;
 import org.apache.ignite.client.IgniteClient;
-import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.ClientConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
@@ -19,45 +14,10 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 
+import static com.turib.hadidilek.poc.ignite.config.CacheContext.Cache.PERSON_SQL;
+
 @Configuration
 public class IgniteConfig {
-
-  public enum Cache {
-    PERSON_SCAN(null),
-    PERSON_SQL(null);
-
-    @Getter
-    @Setter
-    private IgniteCache<Integer, Person> cache;
-
-    Cache(IgniteCache<Integer, Person> cache) {
-      this.cache = cache;
-    }
-
-    public void reset(Ignite client) {
-      if (cache != null) {
-        cache.destroy();
-      }
-
-      switch (this) {
-        case PERSON_SCAN:
-          setCache(client.getOrCreateCache(name()));
-          break;
-
-        case PERSON_SQL:
-          CacheConfiguration<Integer, Person> cacheCfg = new CacheConfiguration<>(Cache.PERSON_SQL.name());
-          cacheCfg.setIndexedTypes(Integer.class, Person.class);
-          Cache.PERSON_SQL.setCache(client.getOrCreateCache(cacheCfg));
-          break;
-      }
-    }
-
-    public static void resetAll(Ignite client) {
-      for (Cache cache : Cache.values()) {
-        cache.reset(client);
-      }
-    }
-  }
 
   //  @Bean(name = "igniteServer", destroyMethod = "close")
   public Ignite igniteServer() {
@@ -85,8 +45,6 @@ public class IgniteConfig {
     Ignite client = Ignition.start(cfg);
     System.out.println("Thick client started: " + client.name());
 
-    Cache.resetAll(client);
-
     return client;
   }
 
@@ -106,7 +64,7 @@ public class IgniteConfig {
             " id LONG PRIMARY KEY, " +
             " name VARCHAR " +
             ") WITH \"CACHE_NAME=? \""
-    ).setArgs(Cache.PERSON_SQL.name())).getAll();
+    ).setArgs(PERSON_SQL.name())).getAll();
 
     igniteClient.query(new SqlFieldsQuery(
         "CREATE INDEX IF NOT EXISTS idx_id ON Person(id)"

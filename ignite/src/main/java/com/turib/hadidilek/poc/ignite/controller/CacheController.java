@@ -1,7 +1,9 @@
 package com.turib.hadidilek.poc.ignite.controller;
 
-import com.turib.hadidilek.poc.ignite.config.IgniteConfig;
+import com.turib.hadidilek.poc.ignite.config.CacheContext;
 import com.turib.hadidilek.poc.ignite.model.Person;
+import org.apache.ignite.binary.BinaryObject;
+import org.apache.ignite.cache.query.FieldsQueryCursor;
 import org.apache.ignite.cache.query.Query;
 import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.ScanQuery;
@@ -19,15 +21,21 @@ import java.util.List;
 @RequestMapping("/cache")
 public class CacheController {
 
-  @GetMapping("/all")
-  public List<Person> get(@RequestParam(name = "cache") IgniteConfig.Cache cache,
+  private final CacheContext cacheContext;
+
+  public CacheController(CacheContext cacheContext) {
+    this.cacheContext = cacheContext;
+  }
+
+  @GetMapping("/person/all")
+  public List<Person> get(@RequestParam(name = "cache") CacheContext.Cache cache,
                           @RequestParam(name = "page", required = false, defaultValue = "0") int page,
                           @RequestParam(name = "size", required = false, defaultValue = "200") int size) {
     int offset = page * size;
 
     Query qry = switch (cache) {
       case PERSON_SCAN ->
-          new SqlFieldsQuery("select * from person order by name offset ? limit ?").setArgs(offset, size);
+          new SqlFieldsQuery("select * from person order by field2 offset ? limit ?").setArgs(offset, size);
 
       case PERSON_SQL -> new ScanQuery();
     };
@@ -38,24 +46,33 @@ public class CacheController {
         .stream()
         .map(fields -> Person
             .builder()
-            .id((Integer) fields.get(0))
-            .name((String) fields.get(1))
+            .field1((Integer) fields.get(0))
+            .field2((String) fields.get(1))
             .build())
         .toList();
   }
 
-  @GetMapping(value = "/{id}")
-  public Person get(@RequestParam IgniteConfig.Cache cache, @PathVariable int id) {
-    return cache.getCache().get(id);
+  @GetMapping(value = "/scan/person/{id}")
+  public Person getScan(@PathVariable int id) {
+    BinaryObject object = cacheContext.getCachePersonScan().get(id);
+    return object.deserialize();
+  }
+
+  @GetMapping(value = "/sql/person/{id}")
+  public Person getSql(@PathVariable int id) {
+    SqlFieldsQuery query = new SqlFieldsQuery("SELECT _key, _val FROM person WHERE field1 = ?").setArgs(id);
+    FieldsQueryCursor<List<?>> cursor = cacheContext.getCachePersonSql().query(query);
+    List<Object> list = (List<Object>) cursor.iterator().next();
+    return (Person) list.get(1);
   }
 
   @DeleteMapping(value = "/clear")
-  public void clear(@RequestParam IgniteConfig.Cache cache) {
+  public void clear(@RequestParam CacheContext.Cache cache) {
     cache.getCache().clear();
   }
 
   @DeleteMapping(value = "/destroy")
-  public void destroy(@RequestParam IgniteConfig.Cache cache) {
+  public void destroy(@RequestParam CacheContext.Cache cache) {
     cache.getCache().destroy();
   }
 }
