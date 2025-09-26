@@ -33,10 +33,10 @@ public class ContinuousQueryService {
   }
 
   private void populateInitialData() {
-    PERSON_SQL.getCache().put(1, new Person(101, "Charlie"));
-    PERSON_SQL.getCache().put(2, new Person(102, "Alice"));
-    PERSON_SQL.getCache().put(3, new Person(103, "Bob"));
-    PERSON_SQL.getCache().put(5, new Person(105, "Mark"));
+//    PERSON_SQL.getCache().put(1, new Person(101, "Charlie"));
+//    PERSON_SQL.getCache().put(2, new Person(102, "Alice"));
+//    PERSON_SQL.getCache().put(3, new Person(103, "Bob"));
+//    PERSON_SQL.getCache().put(5, new Person(105, "Mark"));
   }
 
   private void executeInitialQuery() {

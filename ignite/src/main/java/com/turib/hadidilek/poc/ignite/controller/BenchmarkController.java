@@ -38,7 +38,7 @@ public class BenchmarkController {
   public String benchmark(
       @RequestParam(name = "stepSize", required = false, defaultValue = "10000") int stepSize,
       @RequestParam(name = "stepCount", required = false, defaultValue = "10") int stepCount,
-      @RequestParam(name = "iterations", required = false, defaultValue = "3") int iterations) {
+      @RequestParam(name = "iterations", required = false, defaultValue = "4") int iterations) {
 
     CompletableFuture.runAsync(() -> {
       try {

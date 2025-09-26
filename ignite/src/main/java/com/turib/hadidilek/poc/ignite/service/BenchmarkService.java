@@ -38,7 +38,11 @@ public class BenchmarkService {
     stopWatch.start("populate");
     int totalCount = startKey + itemCount;
     for (int id = startKey; id < totalCount; id++) {
-      Person person = new Person(id, "name-" + id);
+      Person person = Person.builder()
+          .id(id)
+          .name("name-" + id)
+          .surname("surname-" + id)
+          .build();
       PERSON_SCAN.getCache().put(id, person);
       PERSON_SQL.getCache().put(id, person);
     }
@@ -49,7 +53,7 @@ public class BenchmarkService {
   public void benchmark(
       int stepSize,
       int stepCount,
-      int iterations) throws Exception {
+      int iterations) {
 
     reset();
 
@@ -81,7 +85,8 @@ public class BenchmarkService {
               }
             });
 
-        SqlFieldsQuery sqlFieldsQuery = new SqlFieldsQuery("SELECT _key, _val FROM Person ORDER BY name DESC");
+        String queryStr = String.format("SELECT _key, _val FROM Person ORDER BY name DESC, surname DESC");
+        SqlFieldsQuery sqlFieldsQuery = new SqlFieldsQuery(queryStr);
         sqlFieldsQuery.setPageSize(1024);
         sqlFieldsQuery.setLocal(false);
         taskName = String.format("%s - sql", stepInfo);
@@ -101,7 +106,7 @@ public class BenchmarkService {
 
     Map<String, List<TaskInfo>> statsByTasks = new TreeMap<>(Arrays
         .stream(stopWatch.getTaskInfo())
-        .collect(Collectors.groupingBy(e -> e.getTaskName())));
+        .collect(Collectors.groupingBy(TaskInfo::getTaskName)));
 
     printCsv(statsByTasks);
   }
