@@ -17,9 +17,9 @@ public class Person implements Serializable {
   @QuerySqlField(index = true)
   private int id;
 
-  @QuerySqlField
+  @QuerySqlField(index = true)
   private String name;
 
-  @QuerySqlField
+  @QuerySqlField(index = true)
   private String surname;
 }
